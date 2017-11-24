@@ -11,3 +11,16 @@ def my_abs(x):
 
 print(my_abs(-10))
 
+def nop():
+	pass
+
+def my_opt_abs(x):
+	if not isinstance(x, (int, float)):
+		raise TypeError('bad operand type for my_opt_abs(): %s' % type(x))
+	if x >= 0:
+		return x
+	else:
+		return -x
+print(my_opt_abs((1, 2, 3)))
+
+
