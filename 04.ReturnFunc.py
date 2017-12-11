@@ -49,4 +49,25 @@ else:
 
 
 ## 闭包Closure
+## 嵌套在一个函数内部的函数，该函数作为参数返回，返回参数包含与之相关的参数和变量等上下文环境
+## 闭包，能够在函数内部使用函数外部的变量
+def outer():
+	ox = 0
+	def updater():
+		nonlocal ox
+		ox += 1
+	def inter():
+		print(ox)
+	return inter, updater
+## f: 指向inter函数的指针
+## g: 指向updater函数的指针
+f, g = outer()
+## 调用inter函数，读取外部变量的值
+f()
+
+## 调用updater函数，因为要修改外部变量的值，被禁止
+g()
+
+## 如果需要修改外部变量的值，需要将该变量声明为全局变量nonlocal
+f()
 
