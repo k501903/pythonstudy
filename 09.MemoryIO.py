@@ -11,6 +11,7 @@ __author__ = 'Jacklee'
 # 可以像操作文件一样操作内存中的字符串和字节列表
 
 # StringIO
+# 操作的是str类型
 from io import StringIO
 
 # 创建一个空的对象
@@ -43,4 +44,27 @@ f = StringIO('Hello world!')
 f.seek(0, 2)
 f.write('Hi Jack!')
 print(f.getvalue())
+
+# ByteIO
+# 操作的是二进制数据
+from io import BytesIO
+
+# 创建一个空对象
+f = BytesIO()
+# 写入内容
+# 如果只写入'中文',则会报错
+f.write('中文'.encode('utf-8'))
+# 读取内容
+print(f.getvalue())
+# 初始化对象
+# b开头表示是字节, \x表示是十六进制
+f = BytesIO(b'\xe4\xb8\xad\xe6\x96\x87')
+# 显示为字节对象
+print(f.read())
+# 移动到头部
+f.seek(0, 0)
+# 显示为字符串
+print(f.read().decode('utf-8'))
+
+
 

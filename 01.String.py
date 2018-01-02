@@ -14,6 +14,7 @@ print(type(b))
 
 print(b.decode('utf-8'))
 
+
 #格式化
 s1 = 72
 s2 = 85
