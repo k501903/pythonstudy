@@ -15,6 +15,18 @@ __author__ = 'Jacklee'
 # Put B to queue...
 # Put C to queue...
 ###
+
+### 在Macos下执行结果如下，可见是按照多进程模式执行
+# Process to write: 58981
+# Put A to queue...
+# Process to read 58982
+# Get A from queue.
+# Put B to queue...
+# Get B from queue.
+# Put C to queue...
+# Get C from queue.
+###
+
 from multiprocessing import Process, Queue
 import os, time, random
 
