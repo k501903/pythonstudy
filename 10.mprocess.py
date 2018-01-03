@@ -15,7 +15,7 @@ __author__ = 'Jacklee'
 # 注意：仅限于Unix/Linux内核的系统
 import os
 # os.getpid()读取当前进程的PID
-print('Process (%s) start...' % os.getpid())
+# print('Process (%s) start...' % os.getpid())
 # 使用os.fork()复制当前进程, 该进程是当前进程的子进程
 # 注意: fork()调用一次返回两次，第一次是父进程返回子进程的ID，第二次是子进程返回0
 # pid = os.fork()
@@ -35,7 +35,7 @@ def run_proc(name):
 	print('Run child process %s (%s)...' % (name, os.getpid()))
 
 # Process类创建进程
-if __name__ == '__main__':
+if __name__ != '__main__':
 	print('Parent process %s.' % os.getpid())
 	# 创建一个子进程
 	# Process是一个类继承自BaseProcess
@@ -59,17 +59,64 @@ def long_time_task(name):
 	end = time.time()
 	print('Task %s runs %0.2f seconds.' % (name, (end - start)))
 
-if __name__ == '__main__':
+if __name__ != '__main__':
 	print('Parent process %s.' % os.getpid())
-	# 创建一个子进程
+	# 创建多个子进程
 	# Pool是一个方法
 	# Pool(processes=None, initializer=None, initargs=(), maxtasksperchild=None)
-	p = Pool(4)
-	print(type(p))
-	# for i in range(5):
-	# 	p.apply_async(long_time_task, args=(i,))
-	# print('Child process will start.')
-	# p.start()
-	# # join()方法等待子进程结束后再继续往下运行, 通常用于进程间的同步
-	# p.join()
-	# print('Child process End.')
+	p = Pool(2)
+	for i in range(1):
+		p.apply_async(long_time_task, args=(i,))
+	print('waiting for all subprocesses done...')
+	# close()方法，不再允许添加新的进程了
+	p.close()
+	# join()方法等待子进程结束后再继续往下运行, 通常用于进程间的同步
+	p.join()
+	print('All subprocesses done.')
+
+
+# 创建一个外部进程的子进程
+# 使用subprocess模块
+
+import subprocess
+
+if __name__ != '__main__':
+	print('$ nslookup www.python.org')
+	r = subprocess.call(['nslookup', 'www.python.org'])
+	print('Exit code:', r)
+
+
+# 进程间通讯
+# 使用Queue Pipes等方式交换数据
+
+from multiprocessing import Process, Queue
+import os, time, random
+
+# 第一个进程执行的代码
+def writeq(q):
+	print('Process to write: %s' % os.getpid())
+	for value in ['A', 'B', 'C']:
+		print('Put %s to queue...' % value)
+		q.put(value)
+		time.sleep(random.random())
+
+# 第二个进程执行的代码
+def readq(q):
+	print('Process to read %s' % os.getpid())
+	while True:
+		value = q.get(True)
+		print('Get %s from queue.' % value)
+
+if __name__ == '__main__':
+	# 父进程创建队列
+	q = Queue()
+	pw = Process(target=writeq, args=(q,))
+	#pr = Process(target=readq, args=(q,))
+	# 先启动写入进程
+	pw.start()
+	# 再启动读取进程
+	#pr.start()
+	# 等待pw结束
+	#pw.join()
+	# 强行终止pr
+	#pr.terminate()
