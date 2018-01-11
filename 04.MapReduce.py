@@ -3,6 +3,10 @@
 # 高阶函数
 # Map/Reduce
 
+# reduce()
+# reduce(function, iterable[, initializer])
+# 将迭代器依据function的规则进行求和运算
+
 from functools import reduce
 L = [1, 2, 3, 4, 5, 6, 7, 8, 9]
 
@@ -20,6 +24,7 @@ print('将', L, '转为: ', list(map(str, L)))
 
 
 # Reduce()函数
+
 ## 求和add(x, y)
 
 def _add(x, y):
