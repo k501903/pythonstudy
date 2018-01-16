@@ -92,6 +92,13 @@ __author__ = 'Jacklee'
 
 
 # email.header.decode_header(header)函数
+# 解码Message对象Header的值，但不转换字符集
+# * header 参数 message header值. 例如: lijie@boco.com.cn
+# 返回值: (decode_string, charset)的列表
+# 如果header值没有编码，则charset返回None
+# >>> decode_header('=?iso-8859-1?q?p=F6stal?=')
+# [(b'p\xf6stal', 'iso-8859-1')]
+
 import poplib, base64
 from email.parser import Parser
 from email.header import decode_header
