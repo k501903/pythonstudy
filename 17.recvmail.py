@@ -22,15 +22,81 @@ __author__ = 'Jacklee'
 # poplib 负责接收邮件
 # email 负责构造邮件
 # 邮件分为: 纯文本邮件、HTML邮件、带附件的邮件三种
+# 邮件接收分两个步骤
+# 1. 从MDA接收邮件
+# 2. 对邮件进行分析
+#    1. 是multipart还是单个message
+#    2. 对message的内容进行解析
+
+## 一些常用对象和方法/属性的解释
+
+# class POP3(host, port=POP3_PORT[, timeout])
+# 创建一个Pop对象
+# * host POP服务器的地址，字符串
+# * port 默认是POP3_PORT
+
+# class POP3_SSL(host, port=POP3_SSL_PORT, keyfile=None, certfile=None, timeout=None, context=None)
+# 创建一个SSL连接的POP对象
+
+# set_debuglevel()方法
+# 设置DEBUG级别
+# 0-不显示(默认)；1-显示；2-显示所有信息
+
+# getwelcome()方法
+# 获取POP服务器的欢迎字符串
+# 例如：OK Hermes POP service () is ready.
+
+# user(username)方法
+# 发送user命令给服务器
+# * username EMAIL地址串
+# 正常返回b'+OK',这一步不进行user的验证工作
+
+# pass_(password)方法
+# 发送password给服务器，并对用户名和密码进行验证
+# * password 密码串
+# 返回b'+OK'
+# 触发异常，如poplib.error_proto: b'-ERR User not exist' 
+
+# stat()方法
+# 获取邮箱Mailbox的状态
+# 返回一个tuple类型 (message count, mailbox size).
+
+# list([which])方法
+# 请求邮件列表
+# * which 邮件序号
+# 不使用which. 返回值是一个tuple，格式为 (邮件数量, ['邮件序号 octets', ...], octets).
+# 其中[]列表中存放的是字节bytes
+# 使用which. 返回值是该message的['mesg_num octets', ...]
+
+# retr(which)方法
+# 根据which取得整个邮件
+# * which参数. 邮件序号从1开始
+# 返回值的格式 (response, ['line', ...], octets).
+# 其中[]列表中存放的是邮件的内容的字节bytes
+
+# class email.parser.Parser(_class=None, *, policy=policy.compat32)
+# 该类型是专门处理将字符串解析为message类型的
+# parsestr从字符串参数读取数据并解析
+# parsestr(text, headersonly=False)
+# parse从fp对象(file-like)中读取数据(text-mode)并解析
+# parse(fp, headersonly=False)
+# 以上两个均返回message对象
+
+# class email.parser.BytesParser(_class=None, *, policy=policy.compat32)
+# 该类型是专门处理字节解析为message类型的
+# parsebytes从字节参数读取数据并解析
+# parsebytes(bytes, headersonly=False)
+# parse从fp对象(file-like)中读取数据(bianry-mode)并解析
+# parse(fp, headersonly=False)
+# 以上两个均返回message对象 <class 'email.message.Message'>
 
 
-import poplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-from email.mime.base import MIMEBase
-from email import encoders
-from email.header import Header
-from email.utils import parseaddr, formataddr
+# email.header.decode_header(header)函数
+import poplib, base64
+from email.parser import Parser
+from email.header import decode_header
+from email.utils import parseaddr
+from datetime import datetime
 
 class MyRecvMail(object):
 	def __init__(self):
@@ -53,13 +119,14 @@ class MyRecvMail(object):
 			从MDA将邮件接收下来
 		'''
 		self.server = poplib.POP3(self.pop_server)
+		# 设置DEBUG级别
 		self.server.set_debuglevel(1)
 		# welcome()返回邮件服务器的欢迎文字
 		print(self.server.getwelcome().decode('utf-8'))
 
 		# 进行身份认证
-		self.server.user(self.email)
-		self.server.pass_(password)
+		print('user:', self.server.user(self.email))
+		print('pwd:', self.server.pass_(self.password))
 
 		# stat()返回邮件数量和占用空间
 		print('Messages: %s. Size: %s' % self.server.stat())
@@ -67,12 +134,12 @@ class MyRecvMail(object):
 		# list()返回所有邮件的编号
 		resp, mails, octets = self.server.list()
 
-		# 可以查看返回的列表类型
+		# 可以查看返回的邮件列表
 		print(mails)
 
 		# 获取最新的一封邮件，注意索引从1开始
 		index = len(mails)
-		resp, lines, octets = server.retr(index)
+		resp, lines, octets = self.server.retr(index)
 
 		# lines存储了邮件的原始文本的每一行
 		# 可以获得整个邮件的原始文本
@@ -85,79 +152,76 @@ class MyRecvMail(object):
 
 		# 关闭连接
 		self.server.quit()
+		self._print_info(self.msg)
+
+	def decode_str(self, s):
+		try:
+			value, charset = decode_header(s)[0]
+			if charset:
+				value = value.decode(charset)
+			return value
+		except Exception:
+			return '错误的解析'
 
 
-	def make_simple_mail(self):
+	def guess_charset(self, msg):
+		charset = msg.get_charset()
+		if charset is None:
+			content_type = msg.get('Content-Type', '').lower()
+			pos = content_type.find('charset=')
+			if pos >= 0:
+				charset = content_type[pos + 8:].strip()
+		return charset
+
+
+	def _print_info(self, msg, indent=0):
 		'''
-			最简单的邮件，不带头信息
+			将邮件内容按缩进方式打印出来
 		'''
-		self.msg = MIMEText('hello, send by Python...', 'plain', 'utf-8')
+		if indent == 0:
+			# 如果是第一层级，则提取头部信息
+			# 只提取From To Subject三项
+			for header in ['From', 'To', 'Subject']:
+				value = msg.get(header, '')
+				if value:
+					if header == 'Subject':
+						value = self.decode_str(value)
+					else:
+						hdr, addr = parseaddr(value)
+						if hdr != '':
+							name = self.decode_str(hdr)
+						else:
+							name = ''
+						value = '%s <%s>' % (name, addr)
+				print('%s%s: %s' % ('  ' * indent, header, value))
+		if (msg.is_multipart()):
+			parts = msg.get_payload()
+			for n, part in enumerate(parts):
+				print('%spart %s' % ('  ' * indent, n))
+				print('%s----------------------' % ('  ' * indent))
+				printinfo(part, indent + 1)
+		else:
+			content_type = msg.get_content_type()
+			if content_type == 'text/plain' or content_type == 'text/html':
+				content = msg.get_payload(decode = True)
+				charset = self.guess_charset(msg)
+				if charset:
+					content = content.decode(charset)
+				print('%sText: %s' % ('  ' * indent, content + '...'))
+			else:
+				print('%sAttachment: %s' * ('  ' * indent, content_type))
 
 
-	def make_text_mail(self):
+	def parse_mail(self):
 		'''
-			正常的文本邮件，带头信息
+			解析邮件内容
+			将结果打印出来
 		'''
-		self.msg = MIMEText('hello, send by Python...', 'plain', 'utf-8')
-		# formataddr 对字符串进行编码
-		# 不建议直接放入字符串，可能会出现中文字符的编码问题
-		self.msg['From'] = formataddr((Header('Python爱好者', 'utf-8').encode(), self.from_addr))
-		self.msg['To'] = formataddr((Header('我', 'utf-8').encode(), self.to_addr))
-		# Header(s=None, charset=None, maxlinelen=None, header_name=None, continuation_ws=' ', errors='strict')
-		# * s 初始化Header的值，可以不在创建时指定，而是在后面使用append()方法添加
-		# * charset 初始化的字符集，可以不在创建时指定，而是在后面使用append()方法添加
-		self.msg['Subject'] = Header('来自SMTP的问候...', 'utf-8').encode()
-
-
-	def make_html_mail(self):
-		'''
-			HTML格式的邮件，带头信息
-		'''
-		# 创建邮件正文(html类型)
-		self.msg = MIMEText('<html><body><h1>Hello</h1>' +
-    		'<p>send by <a href="http://www.python.org">Python</a>...</p>' +
-    		'</body></html>', 'html', 'utf-8')
-		self.msg['From'] = formataddr((Header('Python爱好者', 'utf-8').encode(), self.from_addr))
-		self.msg['To'] = formataddr((Header('我', 'utf-8').encode(), self.to_addr))
-		self.msg['Subject'] = Header('来自SMTP的问候...', 'utf-8').encode()
-
-
-	def make_attd_mail(self):
-		'''
-			添加附件的邮件，带头信息
-		'''
-		# MIMEMultipart 对象
-		# 可以包含若干内容的邮件
-		self.msg = MIMEMultipart()
-		# 添加头信息
-		self.msg['From'] = formataddr((Header('Python爱好者', 'utf-8').encode(), self.from_addr))
-		self.msg['To'] = formataddr((Header('我', 'utf-8').encode(), self.to_addr))
-		self.msg['Subject'] = Header('来自SMTP的问候...', 'utf-8').encode()
-		
-		# 添加邮件正文(plain类型)
-		self.msg.attach(MIMEText('Send with file...', 'plain', 'utf-8'))
-
-		# 添加邮件附件
-		with open('test.png', 'rb') as f:
-			# 设置附件的MIME和文件名
-			mime = MIMEBase('image', 'png', filename = 'test.png')
-			mime.add_header('Content-Disposition', 'attachment', filename = 'test.png')
-			mime.add_header('Content-ID', '<0>')
-			mime.add_header('X-Attachment-Id', '0')
-			mime.set_payload(f.read())
-			encoders.encode_base64(mime)
-			self.msg.attach(mime)
+		_print_info(self.msg)
 
 
 if __name__ == "__main__":
-	msm = MySendMail()
+	print(dir(MyRecvMail))
+	msm = MyRecvMail()
 	msm._get_mail_param()
-	msm.make_simple_mail()
-	mt = input('发送邮件(1-文本; 2-HTML; 3-附件):')
-	if mt == '1':
-		msm.make_text_mail()
-	elif mt == '2':
-		msm.make_html_mail()
-	elif mt == '3':
-		msm.make_attd_mail()
-	msm._send_mail()
+	msm._recv_mail()
