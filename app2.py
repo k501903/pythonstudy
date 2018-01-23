@@ -36,7 +36,8 @@ def signin_form():
 @app.route('/signin', methods=['POST'])
 def signin():
 	#需要从request对象读取表单内容
-	if request.form['username'] == 'admin' and request.form['password'] == 'password':
+	username = request.form['username']
+	if username == 'admin' and request.form['password'] == 'password':
 		return render_template('signin-ok.html', username=username)
 	return render_template('form.html', message='Bad username or password.', username=username)
 
