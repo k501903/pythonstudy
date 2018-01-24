@@ -15,4 +15,3 @@ __author__ = 'Jacklee'
 # 客户端与服务端建立连接后，可以双向进行数据的传输
 
 # TCP协议实现
-import socket
