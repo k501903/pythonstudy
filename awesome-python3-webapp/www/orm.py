@@ -60,13 +60,13 @@ async def select(sql, args, size=None):
         # 将占位符由?替换为%s
         await cursor.execute(sql.replace('?', '%s'), args or ())
         if size:
-            rs = await cursor.fetchmany(size)
+            records = await cursor.fetchmany(size)
         else:
-            rs = await cursor.fetachall()
+            records = await cursor.fetachall()
         # 执行完查询语句后, 关闭游标
         await cursor.close()
-        logging.info('查询结果: %s行', len(rs))
-        return rs
+        logging.info('查询结果: %s行', len(records))
+        return records
 
 async def execute(sql, args):
     '''
@@ -90,6 +90,15 @@ async def execute(sql, args):
             raise
         return num
 
+def create_args_string(num):
+    '''
+    根据参数数量创建SQL语句中的参数占位符
+    '''
+    lst = []
+    for n in range(num):
+        lst.append('?')
+    return ', '.join(lst)
+
 class Field(object):
     '''
     字段类
@@ -108,10 +117,38 @@ class StringField(Field):
     '''
     字符串字段类
     '''
-    def __init__(self, name=None, primary_key=False, default=None, ddl='varchar(100)'):
+    def __init__(self, name=None, primary_key=False, default=None, ddl='varchar(100)'): # 字符串类型需要设置长度，因此需要ddl参数
         super().__init__(name, ddl, primary_key, default)
 
-class ModalMetaClass(type):
+class IntegerField(Field):
+    '''
+    整数字段类
+    '''
+    def __init__(self, name=None, primary_key=False, default=0): # 类型是固定的
+        super().__init__(name, 'bigint', primary_key, default)
+
+class BooleanField(Field):
+    '''
+    布尔字段类
+    '''
+    def __init__(self, name=None, default=False): # 类型是固定的 不可能作为主键
+        super().__init__(name, 'bool', False, default)
+
+class FloatField(Field):
+    '''
+    浮点字段类
+    '''
+    def __init__(self, name=None, primary_key=False, default=0.0): # 类型是固定的
+        super().__init__(name, 'real', primary_key, default)
+
+class TextField(Field):
+    '''
+    长字符字段类
+    '''
+    def __init__(self, name=None, default=None):
+        super().__init__(name, 'text', False, default)
+
+class ModelMetaClass(type):
     '''
     Modal类的元类
     负责将子类(实体类)的映射信息读取出来

@@ -8,6 +8,12 @@ __author__ = 'Jacklee'
 # 导入模块
 import collections, types, sys
 
+
+L = []
+for n in range(10):
+	L.append('?')
+print(', '.join(L))
+
 L = list(filter(lambda x: x % 2 == 1, range(1, 20)))
 
 
