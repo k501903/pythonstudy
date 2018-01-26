@@ -4,13 +4,31 @@
 """
 模块：orm
 版本：V1.0
+日期: 2018/1/25
 模式：异步MySQL
 架构：使用aiomysql库
-功能：V1.0 创建一个简单的异步数据库操作的封装. 实现连接池、对Select、Insert、Update、Delete操作进行了封装
-        1. 首先创建一个Application对象. 使用web.Application()函数
-        2. 向Application对象中添加路由信息. GET方法, PATH='\', 处理函数为index
-        3. 运行Application. web.run_app()函数. 执行服务器的IP地址和端口号
-        注: 并没有使用自建的消息循环队列(Loop). 队列由Application对象自建
+功能：V1.0 简单的ORM模块. 支持对实体对象实例的操作实现对数据库的同步操作
+       1. 定义实体类. 设置表名称和字段信息
+       2. 通过实体对象实例的方法, 实现对数据库的增删改操作
+       3. 通过实体对象实例的方法, 实现对数据库的查询操作
+     使用示例:
+       1. 定义实体类(Modal的子类)
+        class User(Model):
+            # 定义对应的表名称
+            __table__ = 'users'
+
+            # 定义每个字段的信息
+            # id - 字段名
+            # IntegerField() 字段的属性对象
+            id = IntegerField(primary_key=True)
+            name = StringField()
+       2. 实例化实体对象
+        # 创建实例
+        user = User(id=123, name='Michael')
+        # 存入数据库
+        user.insert()
+        # 查询所有User对象
+        users = User.findAll()
 """
 
 import logging

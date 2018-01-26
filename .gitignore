@@ -72,6 +72,9 @@ $RECYCLE.BIN/
 # Visio自动保存的临时文件
 *.~vsd*
 
+# =====VSCode=====
+.vscode/
+
 # =====Python=====
 # Byte-compiled / optimized / DLL files
 __pycache__/
