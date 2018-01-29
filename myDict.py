@@ -14,7 +14,7 @@ class Dict(dict):
         可以使用字典
     '''
     def __init__(self, **dw):
-        dict.__init__(**dw)
+        super().__init__(**dw)
 
     def __getattr__(self, attr):
         try:
