@@ -50,7 +50,8 @@
 3. 将任务管理器放入事件调度器中执行
 
 ## Python协程演进
-#### Python2.2 生成器（[PEP 255][1]）
+#### Python2.2 生成器
+[PEP 255][1]
 那时也把它称为迭代器，因为它实现了迭代器协议。生成器允许创建一个在计算下一个值时不会浪费内存空间的迭代器。
 1. 生成器是迭代器，在函数中使用了`yield value`就是一个生成器
 2. 生成器不能直接调用，只能通过调用next(g)来获得值（`for ... in g`的实现方式一致）
@@ -65,7 +66,8 @@ def lazy_range(up_to):
         yield index
         index += 1
 ```
-#### Python2.5 增强生成器（[PEP 342][2]）
+#### Python2.5 增强生成器
+[PEP 342][2]
 为生成器引入了`send()`方法，不仅可以暂停生成器，而且能够传递值到生成器暂停的地方。（Python突然就有了协程的概念）
 ```
 receive             =  yield         value
@@ -78,7 +80,7 @@ receive = param                     re = value
 2. 暂停，等待next()或send()恢复
 3. 赋值receive = MockGetValue()。MockGetValue()用来接收send()发送进来的值
 
-也就是说，生成器返回一个值后就暂停了，当再次被唤醒时才接收send()发送进来的值
+也就是说，生成器先返回一个值并暂停，当再次被唤醒时才接收send()发送进来的值。因此，使用send()函数激活一个生成器时使用`g.send(None)`传入一个`None`值
 ```Python
 def gen():
     value = 0
@@ -87,23 +89,20 @@ def gen():
         if receive == 'e':
             break
         value = 'got: %s' % receive
-
-获得生成器
+# 获得生成器
 g = gen()
 # 发送send(None)启动
 print(g.send(None))
 # 消费生成器
 print(g.send('hello'))
+# 发送退出消息
+print(g.send('e'))
 # 关闭生成器
 g.close()
-
-执行步骤:
-1. 通过g.send(None)或者next(g)启动生成器函数
-    执行到第一个yield语句结束的位置. 只执行了yield语句的前两个步骤, 并没有给receive赋值
-2. 通过g.send('hello')传入'hello', 从上次暂停的位置继续执行, 执行yield的第三步:将receive赋值为hello.
-    继续执行计算出value = 'got: hello'. 回到while True循环. 执行yield前两步, 将value值返回
-
 ```
+执行步骤
+1. 通过`g.send(None)`或者`next(g)`启动生成器函数。执行到第一个`yield`语句结束的位置。只执行了`yield`语句的前两个步骤，并没有给`receive`赋值
+2. 通过`g.send('hello')`传入`hello`，从上次暂停的位置继续执行，执行`yield`的第三步，将`receive`赋值为`hello`。继续执行计算出`value = 'got: hello'`。回到`while True`循环。执行`yield`前两步，将`value`值返回
 
 
 
