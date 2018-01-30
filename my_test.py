@@ -17,7 +17,7 @@ class TestCase(object):
         assert 3*4 == 13, '测试3*4==13'
 
 @pytest.fixture
-def smtp1():
+def smtp():
     import smtplib
     return smtplib.SMTP("smtp.qq.com")
 
