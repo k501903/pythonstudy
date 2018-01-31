@@ -93,18 +93,87 @@ def gen():
 g = gen()
 # 发送send(None)启动
 print(g.send(None))
+>>> 0
 # 消费生成器
 print(g.send('hello'))
+>>> got: hello
 # 发送退出消息
 print(g.send('e'))
+>>> StopIteration
 # 关闭生成器
 g.close()
 ```
-执行步骤
+执行步骤解析
 1. 通过`g.send(None)`或者`next(g)`启动生成器函数。执行到第一个`yield`语句结束的位置。只执行了`yield`语句的前两个步骤，并没有给`receive`赋值
 2. 通过`g.send('hello')`传入`hello`，从上次暂停的位置继续执行，执行`yield`的第三步，将`receive`赋值为`hello`。继续执行计算出`value = 'got: hello'`。回到`while True`循环。执行`yield`前两步，将`value`值返回
 
+再看一个例子，通过send()函数调整迭代器的输出结果
+```Python
+def jumping_range(up_to):
+    """
+    生成器返回一个从0到up_to值的整数序列
+    向生成器send()一个值改变序列的值
+    """
+    index = 0
+    while index < up_to:
+        jump = yield index
+        if jump is None:
+            jump = 1
+        index += jump
 
+if __name__ == '__main__':
+    iterator = jumping_range(5)
+    print(next(iterator))  
+    >>> 0
+    print(iterator.send(2))  
+    >>> 2
+    print(next(iterator)) 
+    >>> 3
+    print(iterator.send(-1))
+    >>> 2
+    for x in iterator:
+        print(x)  
+    >>> 3 4
+```
+#### Python3.3 yield from
+[PEP 380][3]
+严格来说，这一特性让你能够从迭代器（生成器刚好也是迭代器）中返回任何值，从而可以干净利索的方式重构生成器。
+```Python
+def lazy_range(up_to):
+    """
+    生成器返回一个从0到up_to值的整数序列
+    """
+    index = 0
+    def gratuitous_refactor():
+        while index < up_to:
+            yield index
+            index += 1
+    yield from gratuitous_refactor()
+```
+yield from 通过让重构变得简单，也让你能够将生成器串联起来，使返回值可以在调用栈中上下浮动，而不需对编码进行过多改动。
+```Python
+def bottom():
+    # Returning the yield lets the value that goes up the call stack to come right back
+    # down.
+    return (yield 42)
+
+def middle():
+    return (yield from bottom())
+
+def top():
+    return (yield from middle())
+
+# Get the generator.
+gen = top()
+value = next(gen)
+print(value)  # Prints '42'.
+try:
+    value = gen.send(value * 2)
+except StopIteration as exc:
+    value = exc.value
+print(value)  # Prints '84'.
+```
 
 [1]: https://www.python.org/dev/peps/pep-0255/ "Simple Generators"
 [2]: https://www.python.org/dev/peps/pep-0342/ "Coroutines via Enhanced Generators"
+[3]: https://www.python.org/dev/peps/pep-0380/ "Syntax for Delegating to a Subgenerator"

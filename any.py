@@ -1,85 +1,49 @@
-class Animal(object):
-    def __init__(self, name):
-        self.name = name
-    def greet(self):
-        print('Hello, I am', self.name)
 
-class Dog(Animal):
-    def greet(self):
-        super(Dog, self).greet()
-        print('WangWang...')
+def lazy_range_from(up_to):
+    """
+    生成器返回一个从0到up_to值的整数序列
+    """
+    index = 0
+    def gratuitous_refactor():
+        nonlocal index
+        while index < up_to:
+            yield index
+            index += 1
+    yield from gratuitous_refactor()
 
-dog = Dog('Dog')
-dog.greet()
+def lazy_range(up_to):
+    """Generator to return the sequence of integers from 0 to up_to, exclusive."""
+    index = 0
+    while index < up_to:
+        yield index
+        index += 1 
+print('lazy_range')
+lr = lazy_range(3)
+for n in lr:
+    print(n)   
 
-class Base(object):
-    def __init__(self):
-        print('Enter Base')
-        print('Leave Base')
-class A(Base):
-    def __init__(self):
-        print('Enter A')
-        super().__init__()
-        print('Leave A')
-class B(Base):
-    def __init__(self):
-        print('Enter B')
-        super().__init__()
-        print('Leave B')
-class C(A, B):
-    def __init__(self):
-        print('Enter C')
-        super().__init__()
-        print('Leave C')
+print('lazy_range_from')
+lrf = lazy_range_from(3)
+for n in lrf:
+    print(n)
 
-c = C()
+def bottom():
+    # Returning the yield lets the value that goes up the call stack to come right back
+    # down.
+    return (yield 42)
 
-class Root:
-    def draw(self):
-        # 将委托链(delegation)中断
-        # 利用防御性编程(defensive programming)的assert确保中断调用链条
-        assert not hasattr(super(), 'draw')
-class Shape(Root):
-    def __init__(self, shapename, **kw):
-        self.shapename = shapename
-        super().__init__(**kw)
-    def draw(self):
-        print('Drawing. Setting shape to:', self.shapename)
-        super().draw()
-class ColoredShape(Shape):
-    def __init__(self, color, **kw):
-        self.color = color
-        super().__init__(**kw)
-    def draw(self):
-        print('Drawing. Setting color to', self.color)
-        super().draw()
+def middle():
+    return (yield from bottom())
 
-cs = ColoredShape(color='blue', shapename='square')
-cs.draw()
+def top():
+    return (yield from middle())
 
-class Moveable:
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
-    def draw(self):
-        print('Drawing at position:', self.x, self.y)
-    
-# 定义一个Adapter类，从Root继承
-class MoveableAdapter(Root):
-    # 定义**kw的签名
-    def __init__(self, x, y, **kw):
-        # 创建第三方类的对象实例
-        self.moveable = Moveable(x, y)
-        # 使用super()
-        super().__init__(**kw)
-    def draw(self):
-        self.moveable.draw()
-        super().draw()
-
-class MoveableColoredShape(MoveableAdapter, ColoredShape):
-    pass
-
-mcs = MoveableColoredShape(color='red', shapename='triangle',
-        x=10, y=20)
-mcs.draw()
-print(mcs.__class__.__mro__)
+# Get the generator.
+gen = top()
+value = next(gen)
+print(value)  # Prints '42'.
+try:
+    value = gen.send(value * 2)
+except StopIteration as exc:
+    value = exc.value
+print(value)  # Prints '84'.
