@@ -47,3 +47,52 @@ try:
 except StopIteration as exc:
     value = exc.value
 print(value)  # Prints '84'.
+
+import asyncio
+import collections
+
+class AsyncMy:
+    def __init__(self):
+        self.list = collections.deque([1, 2, 3, 4, 5])
+
+    async def doIt(self):
+        await asyncio.sleep(1)
+
+    async def __aiter__(self):
+        return self
+
+    async def __anext__(self):
+        if list.count > 0:
+            return list.pop()
+
+    # async def __await__(self):
+    #     return self
+
+am = AsyncMy()
+
+import inspect
+
+di = am.doIt()
+loop = asyncio.get_event_loop()
+loop.run_until_complete(di)
+loop.close()
+
+async def Abc():
+    await asyncio.sleep(1)
+    yield 0
+
+def main():
+    abc = Abc()
+    await abc.send(None)
+
+print('Abc是协程函数?', inspect.iscoroutinefunction(Abc))
+print('abc是协程对象吗？', inspect.iscoroutine(abc))
+print('di是协程对象吗？', inspect.iscoroutine(di))
+print('doIt是协程函数吗？', inspect.iscoroutinefunction(AsyncMy.doIt))
+print('am是协程对象吗？', inspect.isawaitable(am))
+print('sleep?', inspect.iscoroutinefunction(asyncio.sleep))
+# def main():
+#     async for n in am:
+#         print(n)
+
+# main()
