@@ -73,17 +73,20 @@ async def select(sql, args, size=None):
     '''
     logging.info('查询语句: %s, 查询参数: %s', sql, args)
     with await __POOL as conn:
-        # 创建一个返回DICT类型的游标
-        cursor = await conn.cursor(aiomysql.DictCursor)
-        # 将占位符由?替换为%s
-        await cursor.execute(sql.replace('?', '%s'), args or ())
-        if size:
-            records = await cursor.fetchmany(size)
-        else:
-            records = await cursor.fetachall()
-        # 执行完查询语句后, 关闭游标
-        await cursor.close()
-        logging.info('查询结果: %s行', len(records))
+        try:
+            # 创建一个返回DICT类型的游标
+            cursor = await conn.cursor(aiomysql.DictCursor)
+            # 将占位符由?替换为%s
+            await cursor.execute(sql.replace('?', '%s'), args or ())
+            if size:
+                records = await cursor.fetchmany(size)
+            else:
+                records = await cursor.fetachall()
+            # 执行完查询语句后, 关闭游标
+            await cursor.close()
+            logging.info('查询结果: %s行', len(records))
+        except Exception:
+            raise
         return records
 
 async def execute(sql, args):
@@ -112,9 +115,10 @@ def create_args_string(num):
     '''
     根据参数数量创建SQL语句中的参数占位符
     '''
-    lst = []
-    for n in range(num):
-        lst.append('?')
+    # lst = []
+    # for n in range(num):
+    #     lst.append('?')
+    lst = ['?'] * num
     return ', '.join(lst)
 
 class Field(object):

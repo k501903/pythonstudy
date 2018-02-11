@@ -68,3 +68,28 @@ class Comment(Model):
     user_image = StringField(ddl='varchar(500)')
     content = TextField()
     created_at = FloatField(default=time.time)
+
+def exportsql():
+    """
+    1. 从models模块中搜索实体类
+    2. 根据实体类的定义生成创建表的SQL语句
+    """
+    module = __import__(__name__)
+    attrs = dir(module)
+    # print(attrs)
+    with open('tableschema.sql', mode='w', encoding='utf-8') as f:
+        for clsName in attrs:
+            if clsName.startswith('_'):
+                continue
+            cls = getattr(module, clsName)
+            if getattr(cls, '__table__', None):
+                sql = []
+                for k, v in cls.__mappings__.items():
+                    sql.append('`%s` %s not null' % (k, v.column_type))
+                if cls.__primary_key__:
+                    sql.append('primary key (`%s`)' % cls.__primary_key__)
+                out = 'create table %s (\n' % cls.__table__ + ',\n'.join(sql) + '\n) engine=innodb default charset=utf8;\n\n'
+                f.write(out)
+
+if __name__ == '__main__':
+    exportsql()

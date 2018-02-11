@@ -65,8 +65,8 @@ class AsyncMy:
         if list.count > 0:
             return list.pop()
 
-    # async def __await__(self):
-    #     return self
+    async def __await__(self):
+        return self
 
 am = AsyncMy()
 
@@ -79,11 +79,10 @@ loop.close()
 
 async def Abc():
     await asyncio.sleep(1)
-    yield 0
+    # yield 0
 
-def main():
-    abc = Abc()
-    await abc.send(None)
+abc = Abc()
+print(abc)
 
 print('Abc是协程函数?', inspect.iscoroutinefunction(Abc))
 print('abc是协程对象吗？', inspect.iscoroutine(abc))
@@ -91,8 +90,8 @@ print('di是协程对象吗？', inspect.iscoroutine(di))
 print('doIt是协程函数吗？', inspect.iscoroutinefunction(AsyncMy.doIt))
 print('am是协程对象吗？', inspect.isawaitable(am))
 print('sleep?', inspect.iscoroutinefunction(asyncio.sleep))
-# def main():
-#     async for n in am:
-#         print(n)
+def main():
+    for n in am:
+        print(n)
 
-# main()
+main()
